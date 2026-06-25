@@ -82,3 +82,49 @@ describe('GET /transactions/:id', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('GET /transactions — filtering', () => {
+  beforeEach(async () => {
+    // seed data
+    await request(app).post('/transactions').send({ fromAccount: 'ACC-AAAAA', toAccount: 'ACC-BBBBB', amount: 50, currency: 'USD', type: 'transfer' });
+    await request(app).post('/transactions').send({ toAccount: 'ACC-AAAAA', amount: 100, currency: 'EUR', type: 'deposit' });
+    await request(app).post('/transactions').send({ fromAccount: 'ACC-CCCCC', amount: 25, currency: 'GBP', type: 'withdrawal' });
+  });
+
+  test('filters by accountId', async () => {
+    const res = await request(app).get('/transactions?accountId=ACC-AAAAA');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(2);
+    res.body.forEach(tx => {
+      expect(tx.fromAccount === 'ACC-AAAAA' || tx.toAccount === 'ACC-AAAAA').toBe(true);
+    });
+  });
+
+  test('filters by type', async () => {
+    const res = await request(app).get('/transactions?type=deposit');
+    expect(res.status).toBe(200);
+    expect(res.body.every(tx => tx.type === 'deposit')).toBe(true);
+  });
+
+  test('combines accountId and type filters', async () => {
+    const res = await request(app).get('/transactions?accountId=ACC-AAAAA&type=deposit');
+    expect(res.status).toBe(200);
+    expect(res.body.every(tx => tx.type === 'deposit')).toBe(true);
+    res.body.forEach(tx => {
+      expect(tx.fromAccount === 'ACC-AAAAA' || tx.toAccount === 'ACC-AAAAA').toBe(true);
+    });
+  });
+
+  test('filters by date range', async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const res = await request(app).get(`/transactions?from=${today}&to=${today}`);
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThanOrEqual(3);
+  });
+
+  test('returns empty when date range excludes all transactions', async () => {
+    const res = await request(app).get('/transactions?from=2000-01-01&to=2000-01-02');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(0);
+  });
+});
