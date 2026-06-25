@@ -50,6 +50,9 @@ GET http://localhost:3000/transactions?from=2024-01-01&to=2024-12-31
 ### Get transaction by ID (replace with real id)
 GET http://localhost:3000/transactions/replace-with-id
 
+### Export all transactions as CSV
+GET http://localhost:3000/transactions/export?format=csv
+
 ### Account balance
 GET http://localhost:3000/accounts/ACC-12345/balance
 

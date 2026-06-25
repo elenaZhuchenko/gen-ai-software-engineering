@@ -83,6 +83,46 @@ describe('GET /transactions/:id', () => {
   });
 });
 
+describe('GET /transactions/export', () => {
+  test('returns 400 when format is missing', async () => {
+    const res = await request(app).get('/transactions/export');
+    expect(res.status).toBe(400);
+  });
+
+  test('returns 400 for unsupported format', async () => {
+    const res = await request(app).get('/transactions/export?format=json');
+    expect(res.status).toBe(400);
+  });
+
+  test('returns CSV with correct Content-Type', async () => {
+    const res = await request(app).get('/transactions/export?format=csv');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/csv/);
+  });
+
+  test('returns header row for empty store', async () => {
+    const res = await request(app).get('/transactions/export?format=csv');
+    expect(res.text.trim()).toBe('id,fromAccount,toAccount,amount,currency,type,timestamp,status');
+  });
+
+  test('exports all transactions as CSV rows', async () => {
+    await request(app).post('/transactions').send({ fromAccount: 'ACC-12345', toAccount: 'ACC-67890', amount: 100, currency: 'USD', type: 'transfer' });
+    await request(app).post('/transactions').send({ toAccount: 'ACC-00001', amount: 50, currency: 'EUR', type: 'deposit' });
+    const res = await request(app).get('/transactions/export?format=csv');
+    const lines = res.text.trim().split('\n');
+    expect(lines).toHaveLength(3); // header + 2 data rows
+    expect(lines[0]).toBe('id,fromAccount,toAccount,amount,currency,type,timestamp,status');
+    expect(lines[1]).toContain('ACC-12345');
+    expect(lines[1]).toContain('transfer');
+    expect(lines[2]).toContain('deposit');
+  });
+
+  test('sets Content-Disposition attachment header', async () => {
+    const res = await request(app).get('/transactions/export?format=csv');
+    expect(res.headers['content-disposition']).toContain('transactions.csv');
+  });
+});
+
 describe('GET /transactions — filtering', () => {
   beforeEach(async () => {
     // seed data

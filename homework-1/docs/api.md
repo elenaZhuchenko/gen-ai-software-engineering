@@ -93,6 +93,44 @@ Get a single transaction by ID.
 
 ---
 
+### GET /transactions/export
+
+Export all transactions as a CSV file.
+
+**Query parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `format` | string | Yes | Must be `csv` |
+
+**Example:**
+
+```
+GET /transactions/export?format=csv
+```
+
+**Response:**
+
+- `200 OK` — CSV file download
+
+```
+Content-Type: text/csv
+Content-Disposition: attachment; filename="transactions.csv"
+
+id,fromAccount,toAccount,amount,currency,type,timestamp,status
+550e8400-...,ACC-12345,ACC-67890,100,USD,transfer,2024-01-15T10:30:00.000Z,completed
+```
+
+The first row is always the header. Each subsequent row is one transaction. Empty fields (e.g. `fromAccount` for a deposit) appear as blank.
+
+- `400 Bad Request` — Missing or unsupported format
+
+```json
+{ "error": "Unsupported format. Use ?format=csv" }
+```
+
+---
+
 ## Accounts
 
 ### GET /accounts/:accountId/balance

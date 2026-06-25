@@ -54,6 +54,31 @@ router.get('/', (req, res) => {
   return res.json(txs);
 });
 
+const CSV_FIELDS = ['id', 'fromAccount', 'toAccount', 'amount', 'currency', 'type', 'timestamp', 'status'];
+
+function escapeCSV(value) {
+  if (value === null || value === undefined) return '';
+  const str = String(value);
+  return str.includes(',') || str.includes('"') || str.includes('\n')
+    ? `"${str.replace(/"/g, '""')}"`
+    : str;
+}
+
+router.get('/export', (req, res) => {
+  if (req.query.format !== 'csv') {
+    return res.status(400).json({ error: 'Unsupported format. Use ?format=csv' });
+  }
+
+  const txs = store.getAll();
+  const header = CSV_FIELDS.join(',');
+  const rows = txs.map(tx => CSV_FIELDS.map(f => escapeCSV(tx[f])).join(','));
+  const csv = [header, ...rows].join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+  return res.send(csv);
+});
+
 router.get('/:id', (req, res) => {
   const tx = store.getById(req.params.id);
   if (!tx) {
