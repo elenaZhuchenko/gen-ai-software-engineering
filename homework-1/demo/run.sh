@@ -3,6 +3,21 @@ set -e
 
 BASE="http://localhost:3000"
 
+# Start the server from the project root and stop it when this script exits
+cd "$(dirname "$0")/.."
+npm install --silent
+npm start &
+SERVER_PID=$!
+trap 'kill $SERVER_PID 2>/dev/null' EXIT
+
+# Wait until the server is ready
+for i in $(seq 1 10); do
+  if curl -sf "$BASE/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.5
+done
+
 echo "=== Health check ==="
 curl -s "$BASE/health"
 echo
