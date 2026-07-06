@@ -1,0 +1,42 @@
+[
+  {
+    "description": "Initial deposit to ACC-12345",
+    "request": {
+      "method": "POST",
+      "url": "/transactions",
+      "body": {
+        "toAccount": "ACC-12345",
+        "amount": 1000.00,
+        "currency": "USD",
+        "type": "deposit"
+      }
+    }
+  },
+  {
+    "description": "Transfer from ACC-12345 to ACC-67890",
+    "request": {
+      "method": "POST",
+      "url": "/transactions",
+      "body": {
+        "fromAccount": "ACC-12345",
+        "toAccount": "ACC-67890",
+        "amount": 250.50,
+        "currency": "USD",
+        "type": "transfer"
+      }
+    }
+  },
+  {
+    "description": "Withdrawal from ACC-67890",
+    "request": {
+      "method": "POST",
+      "url": "/transactions",
+      "body": {
+        "fromAccount": "ACC-67890",
+        "amount": 50.00,
+        "currency": "USD",
+        "type": "withdrawal"
+      }
+    }
+  }
+]

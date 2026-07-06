@@ -1,0 +1,170 @@
+const request = require('supertest');
+const app = require('../../src/app');
+const store = require('../../src/store');
+
+beforeEach(() => store.clear());
+
+describe('POST /transactions', () => {
+  const validTransfer = {
+    fromAccount: 'ACC-12345',
+    toAccount: 'ACC-67890',
+    amount: 100.50,
+    currency: 'USD',
+    type: 'transfer',
+  };
+
+  test('creates transaction and returns 201', async () => {
+    const res = await request(app).post('/transactions').send(validTransfer);
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ ...validTransfer, status: 'completed' });
+    expect(res.body.id).toBeDefined();
+    expect(res.body.timestamp).toBeDefined();
+  });
+
+  test('returns 400 for invalid amount', async () => {
+    const res = await request(app).post('/transactions').send({ ...validTransfer, amount: -5 });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Validation failed');
+    expect(res.body.details).toBeInstanceOf(Array);
+  });
+
+  test('returns 400 for invalid account format', async () => {
+    const res = await request(app).post('/transactions').send({ ...validTransfer, fromAccount: 'BADFORMAT' });
+    expect(res.status).toBe(400);
+    expect(res.body.details.some(d => d.field === 'fromAccount')).toBe(true);
+  });
+
+  test('returns 400 for invalid currency', async () => {
+    const res = await request(app).post('/transactions').send({ ...validTransfer, currency: 'XYZ' });
+    expect(res.status).toBe(400);
+    expect(res.body.details.some(d => d.field === 'currency')).toBe(true);
+  });
+
+  test('creates deposit without fromAccount', async () => {
+    const res = await request(app).post('/transactions').send({
+      toAccount: 'ACC-00001',
+      amount: 200,
+      currency: 'EUR',
+      type: 'deposit',
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.type).toBe('deposit');
+  });
+});
+
+describe('GET /transactions', () => {
+  test('returns empty array when no transactions', async () => {
+    const res = await request(app).get('/transactions');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  test('returns all transactions', async () => {
+    await request(app).post('/transactions').send({ fromAccount: 'ACC-12345', toAccount: 'ACC-67890', amount: 10, currency: 'USD', type: 'transfer' });
+    await request(app).post('/transactions').send({ toAccount: 'ACC-00001', amount: 50, currency: 'EUR', type: 'deposit' });
+    const res = await request(app).get('/transactions');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(2);
+  });
+});
+
+describe('GET /transactions/:id', () => {
+  test('returns transaction by id', async () => {
+    const create = await request(app).post('/transactions').send({ fromAccount: 'ACC-12345', toAccount: 'ACC-67890', amount: 10, currency: 'USD', type: 'transfer' });
+    const id = create.body.id;
+    const res = await request(app).get(`/transactions/${id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.id).toBe(id);
+  });
+
+  test('returns 404 for unknown id', async () => {
+    const res = await request(app).get('/transactions/nonexistent-id');
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('GET /transactions/export', () => {
+  test('returns 400 when format is missing', async () => {
+    const res = await request(app).get('/transactions/export');
+    expect(res.status).toBe(400);
+  });
+
+  test('returns 400 for unsupported format', async () => {
+    const res = await request(app).get('/transactions/export?format=json');
+    expect(res.status).toBe(400);
+  });
+
+  test('returns CSV with correct Content-Type', async () => {
+    const res = await request(app).get('/transactions/export?format=csv');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/csv/);
+  });
+
+  test('returns header row for empty store', async () => {
+    const res = await request(app).get('/transactions/export?format=csv');
+    expect(res.text.trim()).toBe('id,fromAccount,toAccount,amount,currency,type,timestamp,status');
+  });
+
+  test('exports all transactions as CSV rows', async () => {
+    await request(app).post('/transactions').send({ fromAccount: 'ACC-12345', toAccount: 'ACC-67890', amount: 100, currency: 'USD', type: 'transfer' });
+    await request(app).post('/transactions').send({ toAccount: 'ACC-00001', amount: 50, currency: 'EUR', type: 'deposit' });
+    const res = await request(app).get('/transactions/export?format=csv');
+    const lines = res.text.trim().split('\n');
+    expect(lines).toHaveLength(3); // header + 2 data rows
+    expect(lines[0]).toBe('id,fromAccount,toAccount,amount,currency,type,timestamp,status');
+    expect(lines[1]).toContain('ACC-12345');
+    expect(lines[1]).toContain('transfer');
+    expect(lines[2]).toContain('deposit');
+  });
+
+  test('sets Content-Disposition attachment header', async () => {
+    const res = await request(app).get('/transactions/export?format=csv');
+    expect(res.headers['content-disposition']).toContain('transactions.csv');
+  });
+});
+
+describe('GET /transactions — filtering', () => {
+  beforeEach(async () => {
+    // seed data
+    await request(app).post('/transactions').send({ fromAccount: 'ACC-AAAAA', toAccount: 'ACC-BBBBB', amount: 50, currency: 'USD', type: 'transfer' });
+    await request(app).post('/transactions').send({ toAccount: 'ACC-AAAAA', amount: 100, currency: 'EUR', type: 'deposit' });
+    await request(app).post('/transactions').send({ fromAccount: 'ACC-CCCCC', amount: 25, currency: 'GBP', type: 'withdrawal' });
+  });
+
+  test('filters by accountId', async () => {
+    const res = await request(app).get('/transactions?accountId=ACC-AAAAA');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(2);
+    res.body.forEach(tx => {
+      expect(tx.fromAccount === 'ACC-AAAAA' || tx.toAccount === 'ACC-AAAAA').toBe(true);
+    });
+  });
+
+  test('filters by type', async () => {
+    const res = await request(app).get('/transactions?type=deposit');
+    expect(res.status).toBe(200);
+    expect(res.body.every(tx => tx.type === 'deposit')).toBe(true);
+  });
+
+  test('combines accountId and type filters', async () => {
+    const res = await request(app).get('/transactions?accountId=ACC-AAAAA&type=deposit');
+    expect(res.status).toBe(200);
+    expect(res.body.every(tx => tx.type === 'deposit')).toBe(true);
+    res.body.forEach(tx => {
+      expect(tx.fromAccount === 'ACC-AAAAA' || tx.toAccount === 'ACC-AAAAA').toBe(true);
+    });
+  });
+
+  test('filters by date range', async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const res = await request(app).get(`/transactions?from=${today}&to=${today}`);
+    expect(res.status).toBe(200);
+    expect(res.body.length).toBeGreaterThanOrEqual(3);
+  });
+
+  test('returns empty when date range excludes all transactions', async () => {
+    const res = await request(app).get('/transactions?from=2000-01-01&to=2000-01-02');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(0);
+  });
+});
