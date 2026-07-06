@@ -1,0 +1,6 @@
+customer_id,customer_email,customer_name,subject,description
+,not-an-email,,a,short
+bad-id,valid@example.com,Name,,Description is too short
+1,missing@email.com,Name,Subject with valid length,x
+2,bad-email-format,User,Subject ok,Description long enough here
+3,another@test.com,User,x,Description long enough but subject too short

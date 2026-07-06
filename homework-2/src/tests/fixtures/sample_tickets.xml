@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tickets>
+  <ticket>
+    <customer_id>1</customer_id>
+    <customer_email>user1@example.com</customer_email>
+    <customer_name>User One</customer_name>
+    <subject>Invoice overcharge</subject>
+    <description>Please check my latest invoice — I was charged twice for the same plan period.</description>
+    <category>billing_question</category>
+    <priority>medium</priority>
+  </ticket>
+  <ticket>
+    <customer_id>2</customer_id>
+    <customer_email>user2@example.com</customer_email>
+    <customer_name>User Two</customer_name>
+    <subject>Cannot login</subject>
+    <description>Can't access my account. The login page says my password is wrong but I just reset it.</description>
+    <category>account_access</category>
+    <priority>urgent</priority>
+  </ticket>
+  <ticket>
+    <customer_id>3</customer_id>
+    <customer_email>user3@example.com</customer_email>
+    <customer_name>User Three</customer_name>
+    <subject>Feature request for dark mode</subject>
+    <description>Please add dark mode to the dashboard — it would greatly improve usability at night.</description>
+    <category>feature_request</category>
+    <priority>low</priority>
+  </ticket>
+  <ticket>
+    <customer_id>4</customer_id>
+    <customer_email>user4@example.com</customer_email>
+    <customer_name>User Four</customer_name>
+    <subject>App crashes on startup</subject>
+    <description>The mobile app crashes immediately after the splash screen on Android 14.</description>
+    <category>technical_issue</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>5</customer_id>
+    <customer_email>user5@example.com</customer_email>
+    <customer_name>User Five</customer_name>
+    <subject>Bug in CSV export</subject>
+    <description>The CSV export contains duplicate rows when filtering by date range.</description>
+    <category>bug_report</category>
+    <priority>medium</priority>
+  </ticket>
+  <ticket>
+    <customer_id>6</customer_id>
+    <customer_email>user6@example.com</customer_email>
+    <customer_name>User Six</customer_name>
+    <subject>Refund not received</subject>
+    <description>I cancelled my subscription 10 days ago and still haven't received the refund.</description>
+    <category>billing_question</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>7</customer_id>
+    <customer_email>user7@example.com</customer_email>
+    <customer_name>User Seven</customer_name>
+    <subject>2FA code not arriving</subject>
+    <description>The two-factor authentication SMS code is not being delivered to my phone.</description>
+    <category>account_access</category>
+    <priority>urgent</priority>
+  </ticket>
+  <ticket>
+    <customer_id>8</customer_id>
+    <customer_email>user8@example.com</customer_email>
+    <customer_name>User Eight</customer_name>
+    <subject>Dashboard not loading</subject>
+    <description>The main dashboard page shows a blank screen after the last update.</description>
+    <category>technical_issue</category>
+    <priority>urgent</priority>
+  </ticket>
+  <ticket>
+    <customer_id>9</customer_id>
+    <customer_email>user9@example.com</customer_email>
+    <customer_name>User Nine</customer_name>
+    <subject>Bulk ticket assignment feature</subject>
+    <description>It would be helpful to have a bulk ticket assignment option for team leads.</description>
+    <category>feature_request</category>
+    <priority>low</priority>
+  </ticket>
+  <ticket>
+    <customer_id>10</customer_id>
+    <customer_email>user10@example.com</customer_email>
+    <customer_name>User Ten</customer_name>
+    <subject>Regression in search after v2.4</subject>
+    <description>The search filter stopped returning results after the v2.4 release.</description>
+    <category>bug_report</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>11</customer_id>
+    <customer_email>user11@example.com</customer_email>
+    <customer_name>User Eleven</customer_name>
+    <subject>Account locked after failed attempts</subject>
+    <description>My account was locked after too many failed login attempts. Please unlock it.</description>
+    <category>account_access</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>12</customer_id>
+    <customer_email>user12@example.com</customer_email>
+    <customer_name>User Twelve</customer_name>
+    <subject>Server timeout in production</subject>
+    <description>API requests are timing out after 30 seconds — production is affected for all users.</description>
+    <category>technical_issue</category>
+    <priority>urgent</priority>
+  </ticket>
+  <ticket>
+    <customer_id>13</customer_id>
+    <customer_email>user13@example.com</customer_email>
+    <customer_name>User Thirteen</customer_name>
+    <subject>Google Calendar integration request</subject>
+    <description>It would be great to sync tickets with Google Calendar or Outlook for due-date tracking.</description>
+    <category>feature_request</category>
+    <priority>low</priority>
+  </ticket>
+  <ticket>
+    <customer_id>14</customer_id>
+    <customer_email>user14@example.com</customer_email>
+    <customer_name>User Fourteen</customer_name>
+    <subject>Wrong tax rate on invoice</subject>
+    <description>The invoice shows a tax rate that doesn't match my registered country's VAT rules.</description>
+    <category>billing_question</category>
+    <priority>medium</priority>
+  </ticket>
+  <ticket>
+    <customer_id>15</customer_id>
+    <customer_email>user15@example.com</customer_email>
+    <customer_name>User Fifteen</customer_name>
+    <subject>File upload always fails</subject>
+    <description>Uploading attachments larger than 2 MB always fails with a 500 internal server error.</description>
+    <category>technical_issue</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>16</customer_id>
+    <customer_email>user16@example.com</customer_email>
+    <customer_name>User Sixteen</customer_name>
+    <subject>Incorrect analytics data</subject>
+    <description>The ticket count on the analytics page is off by 12 compared to the actual list view.</description>
+    <category>bug_report</category>
+    <priority>medium</priority>
+  </ticket>
+  <ticket>
+    <customer_id>17</customer_id>
+    <customer_email>user17@example.com</customer_email>
+    <customer_name>User Seventeen</customer_name>
+    <subject>Coupon code not applied at checkout</subject>
+    <description>I entered a valid promo code at checkout but the discount wasn't deducted from the total.</description>
+    <category>billing_question</category>
+    <priority>medium</priority>
+  </ticket>
+  <ticket>
+    <customer_id>18</customer_id>
+    <customer_email>user18@example.com</customer_email>
+    <customer_name>User Eighteen</customer_name>
+    <subject>Production is completely down</subject>
+    <description>Critical outage: our entire tenant is down. No users can log in or access any data.</description>
+    <category>technical_issue</category>
+    <priority>urgent</priority>
+  </ticket>
+  <ticket>
+    <customer_id>19</customer_id>
+    <customer_email>user19@example.com</customer_email>
+    <customer_name>User Nineteen</customer_name>
+    <subject>Payment declined despite valid card</subject>
+    <description>My credit card was declined at renewal even though the card is valid and has sufficient funds.</description>
+    <category>billing_question</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>20</customer_id>
+    <customer_email>user20@example.com</customer_email>
+    <customer_name>User Twenty</customer_name>
+    <subject>SSO via SAML broken</subject>
+    <description>Single sign-on via SAML is broken after the identity provider migration last week.</description>
+    <category>account_access</category>
+    <priority>urgent</priority>
+  </ticket>
+  <ticket>
+    <customer_id>21</customer_id>
+    <customer_email>user21@example.com</customer_email>
+    <customer_name>User TwentyOne</customer_name>
+    <subject>Memory leak in backend service</subject>
+    <description>The backend service leaks memory over 24 hours eventually causing out-of-memory crashes.</description>
+    <category>technical_issue</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>22</customer_id>
+    <customer_email>user22@example.com</customer_email>
+    <customer_name>User TwentyTwo</customer_name>
+    <subject>Wrong status shown in portal</subject>
+    <description>Tickets marked as resolved still appear as open in the customer-facing support portal.</description>
+    <category>bug_report</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>23</customer_id>
+    <customer_email>user23@example.com</customer_email>
+    <customer_name>User TwentyThree</customer_name>
+    <subject>MFA app lost — need account recovery</subject>
+    <description>I lost my authenticator app and cannot log in. Need emergency account recovery assistance.</description>
+    <category>account_access</category>
+    <priority>urgent</priority>
+  </ticket>
+  <ticket>
+    <customer_id>24</customer_id>
+    <customer_email>user24@example.com</customer_email>
+    <customer_name>User TwentyFour</customer_name>
+    <subject>CSV import stops at row 200</subject>
+    <description>Bulk import via CSV silently stops processing after exactly 200 rows without any error message.</description>
+    <category>bug_report</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>25</customer_id>
+    <customer_email>user25@example.com</customer_email>
+    <customer_name>User TwentyFive</customer_name>
+    <subject>Webhook stopped firing</subject>
+    <description>Outgoing webhooks stopped delivering payloads to our endpoint three days ago. No errors in logs.</description>
+    <category>technical_issue</category>
+    <priority>high</priority>
+  </ticket>
+  <ticket>
+    <customer_id>26</customer_id>
+    <customer_email>user26@example.com</customer_email>
+    <customer_name>User TwentySix</customer_name>
+    <subject>Duplicate charge on billing cycle</subject>
+    <description>My card was charged twice in the same billing cycle for the same subscription plan.</description>
+    <category>billing_question</category>
+    <priority>urgent</priority>
+  </ticket>
+  <ticket>
+    <customer_id>27</customer_id>
+    <customer_email>user27@example.com</customer_email>
+    <customer_name>User TwentySeven</customer_name>
+    <subject>Pagination breaks when filter is applied</subject>
+    <description>Applying a category filter resets the page number but the URL still shows page 3, causing an empty result.</description>
+    <category>bug_report</category>
+    <priority>medium</priority>
+  </ticket>
+  <ticket>
+    <customer_id>28</customer_id>
+    <customer_email>user28@example.com</customer_email>
+    <customer_name>User TwentyEight</customer_name>
+    <subject>Custom fields for tickets</subject>
+    <description>We need the ability to add custom fields to tickets to track project-specific metadata for reporting.</description>
+    <category>feature_request</category>
+    <priority>medium</priority>
+  </ticket>
+  <ticket>
+    <customer_id>29</customer_id>
+    <customer_email>user29@example.com</customer_email>
+    <customer_name>User TwentyNine</customer_name>
+    <subject>Cannot add new payment method</subject>
+    <description>I cannot add a new payment method — the form keeps throwing a validation error on a valid card number.</description>
+    <category>billing_question</category>
+    <priority>medium</priority>
+  </ticket>
+  <ticket>
+    <customer_id>30</customer_id>
+    <customer_email>user30@example.com</customer_email>
+    <customer_name>User Thirty</customer_name>
+    <subject>General inquiry about priority algorithm</subject>
+    <description>I have a general question about how the ticket priority algorithm determines urgency scores.</description>
+    <category>other</category>
+    <priority>low</priority>
+  </ticket>
+</tickets>
