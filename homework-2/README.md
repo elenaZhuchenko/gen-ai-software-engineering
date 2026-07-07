@@ -80,7 +80,6 @@ homework-2/
 │   ├── API_REFERENCE.md
 │   ├── ARCHITECTURE.md
 │   ├── TESTING_GUIDE.md
-│   ├── TEST_CASES.md
 │   └── screenshots/           ← test_coverage.png and AI prompt screenshots
 ├── ui/                        ← React + Vite frontend (bonus)
 │   ├── src/
