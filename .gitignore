@@ -49,6 +49,9 @@ temp/
 *.tmp
 *.temp
 
+# PR descriptions (local only)
+docs/pr-description.md
+
 # OS generated files
 .DS_Store
 .DS_Store?
