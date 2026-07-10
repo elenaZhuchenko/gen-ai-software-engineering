@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE artifacts
+.idea/
+.vscode/
+*.swp
+*.swo
+.superpowers/
+docs/superpowers/
+
+# PR descriptions (local only)
+docs/pr-description.md

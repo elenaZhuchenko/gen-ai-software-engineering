@@ -1,0 +1,52 @@
+---
+description: "Feature-specific AI rules for the homework-3 Virtual Card lifecycle service. Layers on top of the global .cursor/rules/fintech-safe-defaults.mdc; only encodes what is unique to this feature (state machine, card data-handling, endpoints/roles, external services, migrations)."
+globs:
+  - "homework-3/**/*.py"
+  - "homework-3/**/*.sql"
+  - "homework-3/**/alembic/**"
+  - "homework-3/**/*.md"
+alwaysApply: false
+---
+
+# Virtual Card Service — Feature Rules
+
+> Generic FinTech guardrails (money/Decimal, sensitive-data logging, audit trails, idempotency, auth, SQL safety, testing) live in the repo-root **`.cursor/rules/fintech-safe-defaults.mdc`** and always apply. This file adds only what is specific to the virtual-card feature.
+
+Read `homework-3/specification.md` before making any changes. Every rule below is derived from that spec.
+
+## Card State Machine
+
+- All card status transitions must go through `apply_status_transition`. No ad-hoc `if status == X: status = Y` assignments.
+- Allowed transitions: `ACTIVE → FROZEN`, `FROZEN → ACTIVE`, `ACTIVE → CLOSED`, `FROZEN → CLOSED`.
+- `CLOSED` is terminal. Never permit any transition out of `CLOSED`.
+- Invalid transitions raise `CardStateTransitionError`, surfaced as HTTP 409.
+
+## Card Data Handling — PAN and CVV2
+
+- Never store a raw PAN in the application database. Persist only the non-reversible card token and the masked PAN (`masked_pan`, `****-****-****-XXXX`, exposing at most the last four digits).
+- Never add a database column named `pan`, `card_number`, `raw_pan`, `cvv`, or `cvv2` (any variant). Reject such migrations.
+- CVV2 lives only in the encrypted DB column and the one-time `POST /cards` 201 response. Never return CVV2 from any GET endpoint — assert `GET /cards/{id}` has no `cvv2` field.
+- `masked_pan` is the only PAN representation allowed in responses and logs.
+
+## Endpoints and Role Routing
+
+- Role → path map: `USER` → `/cards/*` only; `SUPPORT` → `/support/*` only; `OPS_COMPLIANCE` → `/ops/*`, `/support/*`, and card lookups. A `USER` request to `/ops/*` or `/support/*` returns HTTP 403 immediately.
+- The support card view is a dedicated `/support/*` endpoint (spec Task 18); do not grant `SUPPORT` access to `/cards/*`.
+- Every state-mutating endpoint (`POST /cards`, `PUT /cards/{id}/status`, `PUT /cards/{id}/limits`) must handle the `Idempotency-Key` header (mechanics in the global rule).
+- Audit `actor_type` for this feature is one of `USER | OPS | SUPPORT | SYSTEM`.
+
+## External Services
+
+- Calls to `user-service`, `token-vault`, and `encryption-service` use a 2-second timeout; on timeout return HTTP 503 and commit no partial state (per the global secrets/external-calls rule).
+
+## Migrations (SQLAlchemy 2.x + Alembic)
+
+- `audit_events` table must have indexes on `(card_id, timestamp)` and `(user_id, timestamp)`.
+- Foreign key `transactions.card_id → cards.id` with `ON DELETE RESTRICT` (never cascade-delete transactions).
+- No foreign-key cascade from `cards` to `audit_events` (audit records survive card closure).
+
+## What Never to Do (feature-specific)
+
+- Never bypass `apply_status_transition` for a status change.
+- Never add a route that returns CVV2 after initial card creation.
+- Never add a `pan`/`cvv2`/`card_number` column to any card table.
