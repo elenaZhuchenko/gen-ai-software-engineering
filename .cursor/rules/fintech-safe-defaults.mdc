@@ -1,0 +1,72 @@
+---
+description: Reusable FinTech-safe code-generation guardrails for any finance/banking work in this repo (money, sensitive-data logging, audit trails, idempotency, auth, SQL safety, testing). Applies across finance homeworks; feature-specific rules layer on top.
+alwaysApply: true
+---
+
+# FinTech-Safe Defaults (Global)
+
+These are cross-feature, cross-homework guardrails for any finance/banking code in this repository. They are intentionally domain-general: a specific feature (e.g. the virtual-card service in `homework-3/`) layers its own scoped rules on top of these. Where a feature rule is more restrictive, the feature rule wins.
+
+## Money and Decimals
+
+- Use `decimal.Decimal` for all monetary values. `float` and `int` are forbidden for money arithmetic.
+- Represent API monetary fields as decimal strings (e.g., `"99.99"`), not numeric JSON types.
+- Use `Decimal("0.01")` as the quantize step with `ROUND_HALF_UP` for display/storage rounding.
+- Currency codes must be ISO 4217 alpha-3 strings. Validate at the model layer, not in comments.
+- Compare limits/amounts with `Decimal` operators; never rely on floating-point equality.
+
+## Sensitive Data in Logs
+
+- Never log a raw PAN, CVV/CVV2, full card token, account number, personal name, secret, or credential — no logger call, print, exception serializer, debug middleware, or tracing span.
+- Mask sensitive identifiers before they reach any log or non-privileged response (e.g. expose at most the last four digits of a card).
+- Run request/response body logging through a scrubber before output. Prefer structured JSON logs.
+
+## Audit Trails
+
+- Every state-mutating operation must write an audit event **within the same database transaction** as the mutation.
+- If the audit write fails, roll back the whole transaction. Never commit a state change without its audit record.
+- Audit tables are append-only: never generate `UPDATE` or `DELETE` against them.
+- Audit events must carry at least: `actor_type`, `actor_id`, `action`, `timestamp` (ISO 8601 UTC), `previous_state`, `new_state`, `request_id`.
+
+## Idempotency
+
+- Every state-mutating `POST`/`PUT` endpoint must accept and process an `Idempotency-Key` header.
+- Duplicate key + same payload → return the stored response with HTTP 200; do not create a new resource.
+- Duplicate key + different payload → HTTP 422 with `error: IDEMPOTENCY_KEY_MISMATCH`.
+- Store idempotency records keyed by `sha256(idempotency_key + user_id)` to prevent cross-user collisions.
+
+## Error Responses
+
+Always use this envelope for errors:
+```json
+{ "error": "MACHINE_CODE", "message": "Human-readable text.", "request_id": "uuid" }
+```
+Never include stack traces, DB query text, or internal service names in API error responses.
+
+## Authentication and Role Enforcement
+
+- Validate the JWT Bearer token on every request. Reject with HTTP 401 if absent, invalid, or expired.
+- Enforce roles at the router layer (e.g. a `@require_role()` decorator). Never check roles inside service functions.
+- Privilege escalation is never implicit; deny by default.
+
+## Database and SQL Safety
+
+- Use an ORM or parameterized queries exclusively. Never build SQL by string concatenation.
+- Manage all schema changes through a migration tool (e.g. Alembic); never mutate schema ad hoc.
+- Never create a column that stores a raw PAN, CVV/CVV2, or other plaintext cardholder secret.
+
+## Secrets and External Calls
+
+- Encryption keys, HMAC salts, and JWT secrets come from environment variables or a secrets manager — never hard-coded, not even in test fixtures (use test placeholders).
+- All outbound calls to external services must have explicit timeouts. On timeout, fail fast and do not commit partial state.
+
+## Naming and Style (Python)
+
+- Models: `PascalCase`; service/route modules: `snake_case`; machine-readable error codes: `UPPER_SNAKE_CASE`.
+- Route handlers and DB methods that touch I/O are `async def`.
+- Max line length 100. No bare `except:` — catch specific exceptions. No `print()` in production code — use a structured logger.
+
+## Testing
+
+- Keep a coverage gate on production code (default target ≥ 85% unless the homework specifies otherwise).
+- Tests are independent (no shared mutable state), fast, and self-validating. Cover error/edge paths, not just happy paths.

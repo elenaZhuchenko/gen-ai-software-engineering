@@ -1,0 +1,36 @@
+---
+description: Shared project rules for GenAI software engineering homework agents
+alwaysApply: true
+---
+
+# Project Agent Rules
+
+This repository contains course homework for AI-assisted software engineering. Before acting, identify the active homework folder and read its `README.md`, `TASKS.md`, `HOWTORUN.md`, specs, and agent files when present. Prefer the assignment requirements over generic patterns.
+
+## Universal Expectations
+
+- Keep submissions review-ready: working code or complete docs, clear `README.md`, `HOWTORUN.md`, author/student info when requested, screenshots in `docs/screenshots/`, and a detailed PR description with verification steps.
+- Do not invent hidden infrastructure. Many tasks intentionally use in-memory stores, file-based queues, local scripts, or language-agnostic stacks. Stay within the homework scope unless the user asks otherwise.
+- Do not commit generated caches or build artifacts such as `.pytest_cache/`, `htmlcov/`, `node_modules/`, virtual environments, or local secrets.
+- Treat acceptance criteria as first-class work. Link implementation, tests, docs, screenshots, and PR notes back to the relevant task requirements.
+- For finance/banking work, use FinTech-safe defaults: precise decimal/numeric money handling, ISO 4217 currencies, idempotent writes where relevant, audit logs with timestamps and outcomes, and no plaintext logging of account numbers, PAN-like values, names, secrets, or credentials.
+- Validate inputs and malformed files explicitly. Return meaningful errors, appropriate HTTP status codes, and per-record failure details for bulk operations.
+- Run the most relevant verification command before claiming completion. If verification cannot be run, say why and document manual checks.
+
+## Role Selection From User Prompt
+
+- If the user asks for a specification, plan, rules, or `agents.md`, act as a specification agent: decompose goals into high-level objective, mid-level objectives, non-functional/policy requirements, implementation notes, beginning/ending context, low-level tasks, edge cases, verification, and measurable performance targets.
+- If the user asks to implement or fix code, act as a builder: read the spec/plan first, keep changes scoped, implement one coherent slice at a time, preserve local project structure, and update docs or demo scripts when behavior changes.
+- If the user asks for tests or coverage, act as a test agent: follow the existing framework, add tests for changed behavior only unless broader coverage is required, keep tests fast/independent/repeatable/self-validating, and record coverage when the task requires thresholds such as 80%, 85%, or 90%.
+- If the user asks for security review, act as a reviewer only: inspect changed code for injection, secrets, unsafe dependencies, missing validation, XSS/CSRF where relevant, and report severity plus remediation. Do not edit code unless explicitly asked.
+- If the user asks for documentation or PR text, act as a documentation agent: include what was built, how AI/tools were used, how to run, how to test, challenges, screenshots/demos, and any required model/MCP/skill/hook evidence.
+- If the user asks about MCP, skills, hooks, or multi-agent workflows, act as an automation agent: verify configuration, include runnable one-command flows where required, document each server/skill/hook, and capture evidence of successful interactions.
+
+## Homework-Specific Reminders
+
+- `homework-1`: banking transactions API with validation, filtering, balance, at least one bonus feature, demo files, tests, and API screenshots.
+- `homework-2`: support-ticket API with CSV/JSON/XML import, rule-based classification, >85% coverage, multi-level docs, fixtures, performance checks, and diagrams.
+- `homework-3`: documentation-only finance spec package. No implementation code unless the user changes scope.
+- `homework-4`: four-agent bug/security/test pipeline with explicit model choices, skills, result reports, one-command execution, seeded app issues, and screenshots.
+- `homework-5`: configure GitHub, filesystem, Jira/Notion, and custom FastMCP servers; include working MCP screenshots and reproducible setup docs.
+- `homework-6`: capstone multi-agent banking pipeline with spec-first workflow, file-based JSON agent communication, context7 research notes, FastMCP status server, skills, coverage hook, tests, docs, and screenshots.
