@@ -4,7 +4,7 @@ description: >
   Analyses source code to discover and document bugs and security vulnerabilities
   with precise file:line references and code snippets. Supporting agent that feeds
   the Research Verifier.
-model: claude-opus-4
+model: claude-opus-4-8
 role: supporting
 produces: context/bugs/001/research/codebase-research.md
 ---

@@ -20,16 +20,35 @@ cd /path/to/gen-ai-software-engineering/homework-4
 
 ---
 
-## 2. Install Dependencies
+## 2. Set Up Python 3.10+ and Install Dependencies
+
+`cursor-sdk` requires **Python 3.10 or later**. If you only have the macOS system
+Python (3.9), install Python 3.12 first:
 
 ```bash
-pip install -r requirements.txt
+# macOS — install Python 3.12 via Homebrew
+brew install python@3.12
 ```
+
+Then create a virtual environment inside the homework-4 folder and install deps:
+
+```bash
+python3.12 -m venv .venv          # create venv (one-time)
+.venv/bin/pip install -r requirements.txt
+```
+
+`run-pipeline.sh` automatically detects and uses `.venv/bin/python` if it exists,
+so no activation step is needed when running via the shell script.
 
 This installs:
 - `cursor-sdk` — Cursor Python SDK for agent orchestration
 - `PyYAML` — reads frontmatter from `*.agent.md` files
 - `pytest`, `pytest-cov` — test runner
+
+> **Tests only** (no pipeline): the system Python 3.9 works fine.
+> ```bash
+> /usr/bin/python3 -m pytest tests/ -v
+> ```
 
 ---
 

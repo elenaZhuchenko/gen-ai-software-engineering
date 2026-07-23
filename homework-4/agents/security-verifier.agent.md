@@ -4,7 +4,7 @@ description: >
   Reviews modified source files for security vulnerabilities after bug fixes are
   applied. Rates each finding CRITICAL/HIGH/MEDIUM/LOW/INFO with file:line and
   remediation. Produces security-report.md only — makes NO code edits.
-model: claude-opus-4
+model: claude-opus-4-8
 role: required
 consumes:
   - context/bugs/001/fix-summary.md

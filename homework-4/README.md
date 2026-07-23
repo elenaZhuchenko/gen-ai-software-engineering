@@ -1,7 +1,7 @@
 # Homework 4 — 4-Agent Bug/Security/Test Pipeline
 
 **Course:** GenAI and Agentic AI for Software Engineering  
-**Author:** [Your Name / Student ID — fill in before submission]  
+**Author:** Elena Zhuchenko
 **Stack:** Python 3.10+ · Cursor Python SDK · pytest
 
 ---
@@ -27,11 +27,11 @@ Bug Researcher ──► Research Verifier ──► Bug Planner ──► Bug F
 
 | Stage | Agent | Model | Role |
 |-------|-------|-------|------|
-| 1 | Bug Researcher | claude-opus-4 | Reads source, documents bugs/security issues |
-| 2 | Research Verifier | claude-opus-4 | Fact-checks every file:line reference; assigns quality level |
+| 1 | Bug Researcher | claude-opus-4-8 | Reads source, documents bugs/security issues |
+| 2 | Research Verifier | claude-opus-4-8 | Fact-checks every file:line reference; assigns quality level |
 | 3 | Bug Planner | composer-2.5 | Translates verified findings into before/after code plan |
 | 4 | Bug Fixer | composer-2.5 | Applies plan changes, runs tests after each fix |
-| 5 | Security Verifier | claude-opus-4 | Reviews fixed code for remaining vulnerabilities |
+| 5 | Security Verifier | claude-opus-4-8 | Reviews fixed code for remaining vulnerabilities |
 | 6 | Unit Test Generator | composer-2.5 | Generates FIRST-compliant regression tests |
 
 ---
@@ -40,11 +40,11 @@ Bug Researcher ──► Research Verifier ──► Bug Planner ──► Bug F
 
 | Agent | Model | Justification |
 |-------|-------|---------------|
-| Bug Researcher | **claude-opus-4** | Deep reading of unfamiliar code requires strong reasoning to identify subtle logic bugs and security anti-patterns. A weaker model risks missing SEC-001's eval() or BUG-001's slice. |
-| Research Verifier | **claude-opus-4** | Fact-checking demands precision: the model must navigate to exact line numbers, compare snippets byte-by-byte, and apply the quality rubric without hallucinating. Requires the same level as Researcher. |
+| Bug Researcher | **claude-opus-4-8** | Deep reading of unfamiliar code requires strong reasoning to identify subtle logic bugs and security anti-patterns. A weaker model risks missing SEC-001's eval() or BUG-001's slice. |
+| Research Verifier | **claude-opus-4-8** | Fact-checking demands precision: the model must navigate to exact line numbers, compare snippets byte-by-byte, and apply the quality rubric without hallucinating. Requires the same level as Researcher. |
 | Bug Planner | **composer-2.5** | Creating before/after code blocks from verified findings is a structured, deterministic task. Composer-2.5 is fast and sufficient for this planning workload. |
 | Bug Fixer | **composer-2.5** | Applying minimal, targeted code changes and running pytest is routine edit-verify work — no deep reasoning required. Speed matters for quick iteration. |
-| Security Verifier | **claude-opus-4** | Security review requires adversarial thinking to imagine exploit scenarios, map to CWE classifications, and spot subtle issues (e.g. exception chaining leaking internals). Needs deep reasoning. |
+| Security Verifier | **claude-opus-4-8** | Security review requires adversarial thinking to imagine exploit scenarios, map to CWE classifications, and spot subtle issues (e.g. exception chaining leaking internals). Needs deep reasoning. |
 | Unit Test Generator | **composer-2.5** | Generating pytest tests from a spec (fix-summary.md + FIRST skill) is a code-scaffolding task. Composer-2.5 produces clean Python quickly and cost-effectively. |
 
 ---

@@ -4,7 +4,7 @@ description: >
   Fact-checks the Bug Researcher's output by verifying every file:line reference
   and code snippet against the actual source. Applies the Research Quality
   Measurement skill to assign a quality level, then writes verified-research.md.
-model: claude-opus-4
+model: claude-opus-4-8
 role: required
 skills:
   - skills/research-quality-measurement.md

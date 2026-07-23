@@ -34,34 +34,53 @@ error()   { echo -e "${RED}[ERROR]${NC} $*"; }
 # Find Python 3
 # ──────────────────────────────────────────────────────────────────────────────
 PYTHON=""
-for candidate in python3 python3.12 python3.11 python3.10 python; do
-    if command -v "$candidate" &>/dev/null; then
-        version=$("$candidate" -c "import sys; print(sys.version_info[:2])" 2>/dev/null)
-        if [[ "$version" > "(3, 8)" ]]; then
-            PYTHON="$candidate"
-            break
-        fi
-    fi
-done
 
-if [[ -z "$PYTHON" ]]; then
-    error "Python 3.9+ not found. Install it and try again."
-    exit 1
+# helper: returns 0 if the given Python binary is 3.10+
+_is_py310() {
+    "$1" -c "import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)" 2>/dev/null
+}
+
+# ── 1. Prefer the local .venv (created by: python3.12 -m venv .venv) ─────────
+if [[ -x "$SCRIPT_DIR/.venv/bin/python" ]] && _is_py310 "$SCRIPT_DIR/.venv/bin/python"; then
+    PYTHON="$SCRIPT_DIR/.venv/bin/python"
+    info "Using venv Python: $($PYTHON --version)"
 fi
 
-info "Using Python: $($PYTHON --version)"
+# ── 2. Fall back to a system Python 3.10+ ────────────────────────────────────
+if [[ -z "$PYTHON" ]]; then
+    for candidate in /usr/local/bin/python3.12 /usr/local/bin/python3.11 /usr/local/bin/python3.10 \
+                     /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11 \
+                     python3.12 python3.11 python3.10 python3 python; do
+        if command -v "$candidate" &>/dev/null && _is_py310 "$candidate"; then
+            PYTHON="$candidate"
+            info "Using system Python: $($PYTHON --version)"
+            break
+        fi
+    done
+fi
+
+if [[ -z "$PYTHON" ]]; then
+    error "Python 3.10+ not found."
+    echo ""
+    echo "  Install with Homebrew:  brew install python@3.12"
+    echo "  Then create a venv:     python3.12 -m venv .venv"
+    echo "  And install deps:       .venv/bin/pip install -r requirements.txt"
+    exit 1
+fi
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Check dependencies
 # ──────────────────────────────────────────────────────────────────────────────
 if ! "$PYTHON" -c "import cursor_sdk" &>/dev/null; then
-    warn "cursor-sdk not installed — installing from requirements.txt …"
-    "$PYTHON" -m pip install -r "$SCRIPT_DIR/requirements.txt" --quiet
+    warn "cursor-sdk not found — installing from requirements.txt …"
+    "$PYTHON" -m pip install -r "$SCRIPT_DIR/requirements.txt" --quiet 2>/dev/null || {
+        warn "pip install failed (PEP 668?). Try: python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt"
+    }
 fi
 
 if ! "$PYTHON" -c "import yaml" &>/dev/null; then
-    warn "PyYAML not installed — installing …"
-    "$PYTHON" -m pip install PyYAML --quiet
+    warn "PyYAML not found — installing …"
+    "$PYTHON" -m pip install PyYAML --quiet 2>/dev/null || true
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
