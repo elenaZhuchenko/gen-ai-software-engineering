@@ -1,0 +1,7 @@
+# Runtime / pipeline orchestration (Python 3.10+ required for cursor-sdk)
+cursor-sdk>=1.0.24
+PyYAML>=6.0
+
+# Testing (Python 3.9+ sufficient for tests alone)
+pytest>=7.4
+pytest-cov>=4.1
