@@ -5,113 +5,146 @@
 A minimal Python CLI expense tracker (`src/expense_tracker.py`, `src/main.py`).
 Users can add expenses, list them by category, and compute totals.
 
+The application was intentionally seeded with defects so the 4-agent pipeline has
+concrete work to discover, verify, plan, fix, security-review, and test. The seeds
+fall into **two tiers**, mirroring the Bug Researcher's report
+(`research/codebase-research.md`):
+
+1. **Originally seeded issues** — the first, most obvious defects (including a
+   CRITICAL `eval()` RCE). These were remediated in an earlier hardening pass and
+   are retained here for traceability; the Security Verifier re-confirms the RCE is
+   closed in `security-report.md`.
+2. **Run 001 findings** — subtler defects that survived the first pass and were
+   discovered, fixed, and regression-tested by **this** pipeline run.
+
 ---
 
-## Seeded Issues (Pre-Pipeline State)
+## Tier 1 — Originally Seeded Issues (remediated in an earlier pass)
 
-The following bugs and security vulnerabilities were intentionally planted in the
-original version of `src/expense_tracker.py` for the 4-agent pipeline to discover
-and fix.
+These IDs carry an asterisk (`*`) to distinguish them from the run-001 active
+findings below, matching the convention used in `research/codebase-research.md`.
 
----
+| ID       | Type              | Severity | Original defect                                   | Current source (fixed)                                                  |
+|----------|-------------------|----------|---------------------------------------------------|-------------------------------------------------------------------------|
+| BUG-001* | Functional        | HIGH     | `get_total()` used `EXPENSES[1:]` — first expense skipped | `return sum(e["amount"] for e in EXPENSES)`                      |
+| BUG-002* | Functional        | MEDIUM   | `get_expenses()` used `==` — case-sensitive filter | `... if e["category"].lower() == category.lower()`                      |
+| SEC-001* | Security (CWE-94) | CRITICAL | `add_expense()` used `eval(amount)` — arbitrary code execution | `value = float(amount)` guarded by `try/except (ValueError, TypeError)` |
 
-### BUG-001 — Off-by-one in `get_total()`
-
-| Field       | Value |
-|-------------|-------|
-| **File**    | `src/expense_tracker.py` |
-| **Function**| `get_total()` |
-| **Line**    | ~40 (pre-fix) |
-| **Severity**| HIGH |
-
-**Buggy code:**
-```python
-def get_total(category=None):
-    if category:
-        matching = get_expenses(category)
-        return sum(e["amount"] for e in matching)
-    # BUG: EXPENSES[1:] skips the very first expense
-    return sum(e["amount"] for e in EXPENSES[1:])
+**SEC-001\* proof-of-concept (pre-fix):**
 ```
-
-**Expected behaviour:** `get_total()` returns the sum of ALL stored expenses.
-
-**Actual behaviour (before fix):** Returns the sum of all expenses *except the first one*.
-If only one expense exists, returns `0.0`.
-
-**Impact:** Users see incorrect totals — every report under-counts by the first expense amount.
-
----
-
-### BUG-002 — Case-sensitive category filter in `get_expenses()`
-
-| Field       | Value |
-|-------------|-------|
-| **File**    | `src/expense_tracker.py` |
-| **Function**| `get_expenses()` |
-| **Line**    | ~52 (pre-fix) |
-| **Severity**| MEDIUM |
-
-**Buggy code:**
-```python
-def get_expenses(category=None):
-    if category:
-        # BUG: exact-case match — 'Food' won't find 'food'
-        return [e for e in EXPENSES if e["category"] == category]
-    return list(EXPENSES)
+add food __import__('os').system('id') Lunch
 ```
-
-**Expected behaviour:** `get_expenses("Food")` returns all expenses whose category is
-`"food"`, `"Food"`, `"FOOD"`, etc. (case-insensitive).
-
-**Actual behaviour (before fix):** Only returns expenses whose category string is
-byte-for-byte identical to the filter. `get_expenses("Food")` returns nothing when
-expenses were added with category `"food"`.
-
-**Impact:** Filtering and per-category totals silently return empty results when
-capitalisation differs.
+An attacker-supplied `amount` was passed straight to `eval()`, allowing arbitrary
+Python execution. The fix replaces `eval()` with `float()` + explicit validation,
+closing the RCE. The Security Verifier confirms this as **RESOLVED** (see
+`security-report.md`, FINDING-001).
 
 ---
 
-### SEC-001 — Code injection via `eval()` in `add_expense()`
+## Tier 2 — Run 001 Findings (discovered & fixed by this pipeline run)
+
+These are the active defects the pipeline actually processed end-to-end
+(research → verify → plan → fix → security review → tests) in run 001.
+
+### BUG-001 — `add_expense()` accepts `NaN` / `Infinity`, poisoning all totals
 
 | Field       | Value |
 |-------------|-------|
 | **File**    | `src/expense_tracker.py` |
 | **Function**| `add_expense()` |
-| **Line**    | ~22 (pre-fix) |
-| **Severity**| CRITICAL |
-| **CWE**     | CWE-78 / CWE-94 (Code Injection) |
+| **Line**    | 39 (conversion) / 45 (insufficient guard), pre-fix |
+| **Severity**| MEDIUM |
 
-**Vulnerable code:**
+**Buggy code (pre-fix):**
 ```python
-def add_expense(category, amount, description):
-    # SECURITY ISSUE: eval() on unsanitised user input
-    value = eval(amount)   # allows arbitrary Python expression execution
-    ...
+value = float(amount)
+...
+if value < 0:
+    raise ValueError(f"Amount must be non-negative, got {value}.")
 ```
 
-**Impact:** Any caller passing a malicious string as `amount` can execute arbitrary
-Python code in the server/CLI process — e.g. reading files, spawning shells, or
-exfiltrating environment variables.
+**Problem:** `float("nan")`, `float("inf")`, `float("-inf")` all parse
+successfully, and `float("nan") < 0` / `float("inf") < 0` are both `False`, so the
+only guard is bypassed. A single stored `NaN` makes `get_total()` return `nan` for
+**every** subsequent call; a stored `inf` makes totals `inf`.
 
-**Proof-of-concept payload:**
-```
-add food __import__('os').system('id') Lunch
-```
+**Impact:** Data-integrity defect — one poisoned record corrupts all reporting.
 
-**Fix applied:** Replaced with `float(amount)` guarded by `try/except ValueError`.
+**Fix applied:** `if not math.isfinite(value) or value < 0: raise ValueError(...)`.
+
+---
+
+### BUG-002 — Blank category accepted; empty-string filter silently disables filtering
+
+| Field       | Value |
+|-------------|-------|
+| **File**    | `src/expense_tracker.py` |
+| **Function**| `add_expense()`, `get_total()`, `get_expenses()` |
+| **Line**    | 48–53 (storage) / 64 / 77 (falsy filter), pre-fix |
+| **Severity**| LOW |
+
+**Problem:** `add_expense()` stored `category`/`description` with no validation, so
+`""` or whitespace was accepted as a category. Separately, `get_total()` and
+`get_expenses()` gated filtering on `if category:` — a falsy test — so an
+empty-string query was treated as "no filter" (returning **all** expenses) rather
+than "match the empty category".
+
+**Fix applied:** reject blank categories at input
+(`if not category or not category.strip(): raise ValueError(...)`) and replace the
+falsy filter test with `if category is not None:` in both `get_total()` and
+`get_expenses()`.
+
+---
+
+### BUG-003 — `get_expenses()` returns live dict references (shallow copy)
+
+| Field       | Value |
+|-------------|-------|
+| **File**    | `src/expense_tracker.py` |
+| **Function**| `get_expenses()` |
+| **Line**    | 79–80, pre-fix |
+| **Severity**| LOW |
+
+**Problem:** Both return paths returned a new *list* but the same dict objects held
+in the module-level `EXPENSES` store. A caller mutating a returned dict (e.g.
+`get_expenses()[0]["amount"] = 999`) silently corrupted the canonical store.
+
+**Fix applied:** defensively copy each record —
+`return [dict(e) for e in EXPENSES if ...]` and `return [dict(e) for e in EXPENSES]`.
+
+---
+
+### SEC-001 (INFO) — Untrusted `amount` reflected in error message (CWE-209)
+
+| Field       | Value |
+|-------------|-------|
+| **File**    | `src/expense_tracker.py` |
+| **Function**| `add_expense()` |
+| **Line**    | 42 |
+| **Severity**| INFO (no change required for a local CLI) |
+
+**Note:** The invalid-amount error interpolates the raw user input via
+`{amount!r}`. In a local CLI there is no meaningful trust boundary, so this is
+informational only. It is flagged for completeness in case the logic is ever
+reused behind a network service. Per verified research, **no code change** is
+required.
 
 ---
 
 ## Post-Pipeline State
 
-After the 4-agent pipeline ran:
+After the 4-agent pipeline ran (run 001):
 
-| Issue   | Status   | Fix applied |
-|---------|----------|-------------|
-| BUG-001 | RESOLVED | `EXPENSES[1:]` → `EXPENSES` |
-| BUG-002 | RESOLVED | `== category` → `.lower() == category.lower()` |
-| SEC-001 | RESOLVED | `eval(amount)` → `float(amount)` + validation |
+| Issue    | Tier | Status   | Fix applied |
+|----------|------|----------|-------------|
+| SEC-001* | 1    | RESOLVED | `eval(amount)` → `float(amount)` + validation (re-confirmed by Security Verifier) |
+| BUG-001* | 1    | RESOLVED | `EXPENSES[1:]` → `EXPENSES` |
+| BUG-002* | 1    | RESOLVED | `== category` → `.lower() == category.lower()` |
+| BUG-001  | 2    | RESOLVED | added `math.isfinite()` guard |
+| BUG-002  | 2    | RESOLVED | blank-category rejection + `if category is not None` |
+| BUG-003  | 2    | RESOLVED | `list(EXPENSES)` → `[dict(e) for e in EXPENSES]` |
+| SEC-001  | 2    | INFO     | no change required (CWE-209, CLI context) |
 
-All tests pass. See `fix-summary.md` for per-change details.
+Full suite: **31 passed, 0 failed**. See `fix-summary.md` for per-change details,
+`security-report.md` for the post-fix security verdict (PASS — 0 CRITICAL / 0 HIGH),
+and `test-report.md` for the 13 generated FIRST-compliant regression tests.

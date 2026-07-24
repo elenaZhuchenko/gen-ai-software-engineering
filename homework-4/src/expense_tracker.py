@@ -9,6 +9,7 @@ Bugs that existed BEFORE the pipeline (documented in context/bugs/001/bug-contex
 """
 from __future__ import annotations
 
+import math
 from typing import Optional
 
 # In-memory store (shared module state; reset between tests via clear_expenses()).
@@ -42,8 +43,11 @@ def add_expense(category: str, amount: str, description: str) -> dict:
             f"Invalid amount {amount!r}: must be a numeric value (e.g. '9.99')."
         ) from exc
 
-    if value < 0:
-        raise ValueError(f"Amount must be non-negative, got {value}.")
+    if not math.isfinite(value) or value < 0:
+        raise ValueError(f"Amount must be a finite non-negative number, got {value}.")
+
+    if not category or not category.strip():
+        raise ValueError("Category must be a non-empty string.")
 
     expense: dict = {
         "id": _next_id,
@@ -61,7 +65,7 @@ def get_total(category: Optional[str] = None) -> float:
 
     BUG-001 fix: was ``EXPENSES[1:]`` (skipped first expense); now uses the full list.
     """
-    if category:
+    if category is not None:
         return sum(e["amount"] for e in get_expenses(category))
 
     # BUG-001 FIX: iterate all expenses, not EXPENSES[1:]
@@ -74,10 +78,10 @@ def get_expenses(category: Optional[str] = None) -> list[dict]:
     BUG-002 fix: was ``e["category"] == category`` (case-sensitive);
     now compares lowercase on both sides.
     """
-    if category:
+    if category is not None:
         # BUG-002 FIX: case-insensitive comparison
-        return [e for e in EXPENSES if e["category"].lower() == category.lower()]
-    return list(EXPENSES)
+        return [dict(e) for e in EXPENSES if e["category"].lower() == category.lower()]
+    return [dict(e) for e in EXPENSES]
 
 
 def clear_expenses() -> None:

@@ -116,7 +116,7 @@ After the pipeline completes, verify the fixes:
 pytest tests/ -v
 ```
 
-Expected result: **34 passed, 0 failed**.
+Expected result: **31 passed, 0 failed**.
 
 With coverage:
 
