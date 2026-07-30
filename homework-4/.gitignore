@@ -1,0 +1,36 @@
+# Homework-4 — Python pipeline artifacts that must never be committed
+# (mirrors the repo-root .gitignore; kept local so this homework is self-contained)
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Test coverage
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+*.cover
+
+# Packaging / build
+*.egg-info/
+build/
+dist/
+
+# Local env / secrets (never commit the Cursor API key)
+.env
+.env.*
+*.env
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
