@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PAT}"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "${CLAUDE_PROJECT_DIR:-.}"
+      ]
+    },
+    "notion": {
+      "command": "npx",
+      "args": ["-y", "@notionhq/notion-mcp-server"],
+      "env": {
+        "NOTION_TOKEN": "${NOTION_TOKEN}"
+      }
+    },
+    "custom-mcp-server": {
+      "command": "${CLAUDE_PROJECT_DIR:-.}/custom-mcp-server/.venv/bin/python",
+      "args": [
+        "${CLAUDE_PROJECT_DIR:-.}/custom-mcp-server/server.py"
+      ]
+    }
+  }
+}
