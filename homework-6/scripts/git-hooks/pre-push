@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Coverage gate — blocks git push when unit-test coverage is below 80%.
+# Install: run scripts/install-git-hooks.sh from the homework-6 directory.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HW6_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+VENV_PYTHON="$HW6_DIR/.venv/bin/python"
+MIN_COVERAGE=80
+
+echo "🔍 Coverage gate: running pytest in $HW6_DIR ..."
+
+cd "$HW6_DIR"
+
+if ! "$VENV_PYTHON" -m pytest \
+    --cov=agents --cov=integrator \
+    --cov-fail-under="$MIN_COVERAGE" \
+    --cov-report=term-missing \
+    -q 2>&1; then
+
+    echo ""
+    echo "🚫 PUSH BLOCKED — test coverage is below ${MIN_COVERAGE}%."
+    echo "   Fix failing tests or add coverage before pushing."
+    exit 1
+fi
+
+echo "✅ Coverage gate passed (≥${MIN_COVERAGE}%). Push allowed."
+exit 0
