@@ -160,7 +160,8 @@ homework-6/
 ├── agents/              ← Three pipeline agents
 ├── mcp/server.py        ← FastMCP pipeline-status server
 ├── tests/               ← 81 unit + integration tests
-├── shared/              ← Runtime message directories (gitignored except .gitkeep)
+├── shared/              ← Runtime message mailboxes (input/processing/output/
+│                          results); gitignored except .gitkeep — see below
 ├── .cursor/commands/    ← Slash commands (/run-pipeline, /validate-transactions, /write-spec)
 ├── .cursor/hooks.json   ← Cursor coverage-gate hook
 ├── scripts/git-hooks/   ← Native git pre-push hook

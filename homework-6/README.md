@@ -22,19 +22,31 @@ sample-transactions.json
     ┌───────────┐
     │ Integrator│  ← sets up shared/ dirs, loads input, orchestrates agents
     └─────┬─────┘
-          │ input message (UUID, ISO8601 timestamp, source_agent, data)
+          │ writes JSON message → shared/input/<TXN_ID>.json
           ▼
-┌─────────────────────┐
+   shared/input/ ──(moved while working)──▶ shared/processing/
+          │                                         │
+          │                    ┌────────────────────┘
+          ▼                    ▼
+┌─────────────────────┐   writes result →  shared/output/<TXN_ID>.json
 │ Transaction Validator│  ← checks fields, Decimal amount > 0, ISO 4217 currency
 └──────────┬──────────┘
-           │ status: validated → fraud_detector
-           │ status: rejected  → reporting_agent (skip fraud check)
+           │ status: validated → shared/output/ picked up by fraud_detector
+           │ status: rejected  → shared/output/ picked up by reporting_agent
            ▼
-  ┌─────────────────┐
+   shared/output/ ──(moved while working)──▶ shared/processing/
+          │                                         │
+          │                    ┌────────────────────┘
+          ▼                    ▼
+  ┌─────────────────┐    writes result →  shared/output/<TXN_ID>.json
   │  Fraud Detector  │  ← risk score 0–100 (HIGH_VALUE +60, CROSS_BORDER +20, OFF_HOURS +20)
   └────────┬─────────┘    score ≥ 60 → fraud_review; below → approved
            │
            ▼
+   shared/output/ ──(moved while working)──▶ shared/processing/
+          │                                         │
+          │                    ┌────────────────────┘
+          ▼                    ▼
   ┌─────────────────────┐
   │   Reporting Agent    │  ← writes shared/results/<TXN_ID>.json per transaction
   └──────────┬───────────┘    writes shared/results/pipeline-summary.json
@@ -46,6 +58,12 @@ sample-transactions.json
       ├── ...
       └── pipeline-summary.json
 ```
+
+Every arrow above is a real file on disk, not just an in-memory Python
+call: `shared/input/`, `shared/processing/`, and `shared/output/` are
+transient mailboxes (cleared before every run and left empty once a run
+completes — every message is consumed by the next stage); `shared/results/`
+is the only durable directory.
 
 ---
 
@@ -117,7 +135,7 @@ Configure via `.cursor/mcp.json` (see `mcp.json` for the canonical config).
 
 ## Coverage Gate
 
-A git `pre-push` hook (`scripts/git-hooks/pre-push`) runs `pytest --cov` and blocks the push if coverage falls below **80%**. A `.cursor/hooks.json` `beforeShellExecution` hook mirrors this gate for pushes initiated by the Cursor agent.
+A git `pre-push` hook (`scripts/git-hooks/pre-push`) runs `pytest --cov` and blocks the push if coverage falls below **80%**. A `.cursor/hooks.json` `beforeShellExecution` hook mirrors this gate for pushes initiated by the Cursor agent. Since this repo is a shared monorepo, both hooks first check whether the push actually touches `homework-6/` (by branch name or diff against `origin/main`) and skip the check entirely otherwise — so pushing another homework's branch never requires `homework-6/.venv` to exist.
 
 Install once:
 ```bash

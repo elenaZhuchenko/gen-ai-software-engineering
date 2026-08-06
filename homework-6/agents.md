@@ -73,6 +73,25 @@ Writes `shared/results/<transaction_id>.json` for each transaction, then `pipeli
 }
 ```
 
+## File-Based Hand-Off Mechanics
+
+The integrator does not pass messages between agents as in-memory objects
+only. For every transaction it:
+1. Writes the initial message to `shared/input/<txn_id>.json`.
+2. Moves that file into `shared/processing/<txn_id>.json` before invoking
+   the next agent (marking which agent currently "owns" the message).
+3. Writes the agent's result to `shared/output/<txn_id>.json` for the next
+   stage to pick up, and removes the `processing/` copy.
+4. Repeats for the next agent (`shared/output/` → `shared/processing/` →
+   `shared/output/`), until the reporting agent consumes the last
+   `output/` message and writes the durable result straight to
+   `shared/results/<txn_id>.json`.
+
+`shared/input/`, `shared/processing/`, and `shared/output/` are transient
+mailboxes — cleared by the integrator before every run — and end up empty
+once a run completes, since every message is consumed by the next stage.
+`shared/results/` is the only durable directory.
+
 ## Fintech Safety Constraints
 
 - `decimal.Decimal` for all monetary arithmetic — never `float`

@@ -1,10 +1,18 @@
 """Integrator / Orchestrator — routes transactions through the pipeline.
 
-Flow: sample-transactions.json
-  → TransactionValidator
-  → FraudDetector (for validated transactions)
-  → ReportingAgent (for all transactions)
-  → shared/results/<txn_id>.json + shared/results/pipeline-summary.json
+Flow (file-based hand-off, per the message protocol in ``agents.md``):
+  sample-transactions.json
+    → shared/input/<txn_id>.json        (integrator drops the initial message)
+    → shared/processing/<txn_id>.json   (agent moves the message here while working)
+    → shared/output/<txn_id>.json       (agent writes its result here for the next agent)
+    → TransactionValidator  → FraudDetector (validated only) → ReportingAgent
+    → shared/results/<txn_id>.json + shared/results/pipeline-summary.json
+
+Each stage physically reads and writes JSON message files under ``shared/``;
+no message is ever passed between agents as an in-memory object only — the
+file is the source of truth at every hand-off, which is what makes re-runs
+and crash recovery possible (a message sitting in ``processing/`` shows
+exactly which agent was working on it when the pipeline stopped).
 
 Usage:
     python integrator.py [--input PATH] [--shared-dir PATH]
@@ -37,10 +45,16 @@ DEFAULT_SHARED = BASE_DIR / "shared"
 
 
 def _setup_dirs(shared_dir: Path) -> None:
-    """Ensure shared/ subdirectories exist and clear transient ones."""
+    """Ensure shared/ subdirectories exist and clear the transient mailboxes.
+
+    ``input/``, ``processing/``, and ``output/`` only ever hold messages
+    that are in-flight between agents, so they are safe to clear before
+    every run. ``results/`` holds the durable, final outcome of previous
+    runs and is intentionally left untouched.
+    """
     for sub in ("input", "processing", "output", "results"):
         (shared_dir / sub).mkdir(parents=True, exist_ok=True)
-    for sub in ("processing", "output"):
+    for sub in ("input", "processing", "output"):
         for f in (shared_dir / sub).iterdir():
             if f.name != ".gitkeep":
                 f.unlink()
@@ -57,8 +71,82 @@ def _make_input_message(txn: dict) -> dict:
     }
 
 
+def _write_message(path: Path, message: dict) -> None:
+    path.write_text(json.dumps(message, indent=2, default=str), encoding="utf-8")
+
+
+def _read_message(path: Path) -> dict:
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _run_stage(message_path: Path, processing_dir: Path, output_dir: Path, handler) -> dict:
+    """Hand a message file from a mailbox to one agent and file its result.
+
+    Implements the ``input/output`` → ``processing`` → ``output`` hand-off:
+    the message file is moved into ``processing/`` for the duration of the
+    call (marking which agent currently owns it), the agent's pure
+    ``process_message`` handler is invoked on its contents, the resulting
+    message is written to ``output/<txn_id>.json`` for the next stage to
+    pick up, and the transient ``processing/`` copy is removed.
+
+    Parameters
+    ----------
+    message_path:
+        Path to the JSON message file to hand off (currently sitting in
+        ``input/`` or ``output/``).
+    processing_dir:
+        Directory the message is moved into while the agent is "working".
+    output_dir:
+        Directory the agent's result message is written to.
+    handler:
+        Agent's ``process_message(message: dict) -> dict`` function.
+
+    Returns
+    -------
+    dict
+        The result message returned by ``handler``.
+    """
+    txn_id = message_path.stem
+    processing_path = processing_dir / message_path.name
+    shutil.move(str(message_path), str(processing_path))
+
+    message = _read_message(processing_path)
+    result_message = handler(message)
+
+    output_path = output_dir / f"{txn_id}.json"
+    _write_message(output_path, result_message)
+    processing_path.unlink()
+
+    return result_message
+
+
+def _finalize_stage(message_path: Path, processing_dir: Path, results_dir: Path) -> dict:
+    """Hand the final message off to the reporting agent and clear its mailbox copy.
+
+    Mirrors :func:`_run_stage` for the last hop in the pipeline: the
+    reporting agent writes directly to ``results/`` (its output *is* the
+    durable result, not another in-flight message), so there is no
+    ``output/`` write here.
+    """
+    processing_path = processing_dir / message_path.name
+    shutil.move(str(message_path), str(processing_path))
+
+    message = _read_message(processing_path)
+    ack = report(message, results_dir=str(results_dir))
+    processing_path.unlink()
+
+    return ack
+
+
 def run_pipeline(transactions: list[dict], shared_dir: str | Path = DEFAULT_SHARED) -> list[dict]:
-    """Run all transactions through the three-agent pipeline.
+    """Run all transactions through the three-agent, file-based pipeline.
+
+    Each transaction's message is physically written to ``shared/input/``,
+    then handed off through ``shared/processing/`` and ``shared/output/``
+    to each agent in turn, exactly as described in the file-based message
+    protocol (see ``agents.md``). No message is only ever an in-memory
+    object — every hand-off is backed by a JSON file on disk.
 
     Parameters
     ----------
@@ -74,25 +162,37 @@ def run_pipeline(transactions: list[dict], shared_dir: str | Path = DEFAULT_SHAR
         ``write_summary()``.
     """
     shared = Path(shared_dir)
-    results_dir = str(shared / "results")
+    input_dir = shared / "input"
+    processing_dir = shared / "processing"
+    output_dir = shared / "output"
+    results_dir = shared / "results"
+    for d in (input_dir, processing_dir, output_dir, results_dir):
+        d.mkdir(parents=True, exist_ok=True)
     final_results: list[dict] = []
 
     for txn in transactions:
         txn_id = txn.get("transaction_id", "<unknown>")
         logger.info("[integrator] processing txn=%s", txn_id)
 
-        # Stage 1: validation
+        # Stage 0: drop the initial message into shared/input/
         input_msg = _make_input_message(txn)
-        validated_msg = validate(input_msg)
+        input_path = input_dir / f"{txn_id}.json"
+        _write_message(input_path, input_msg)
 
-        # Stage 2: fraud detection (only for validated records)
+        # Stage 1: TransactionValidator — input/ -> processing/ -> output/
+        validated_msg = _run_stage(input_path, processing_dir, output_dir, validate)
+
+        # Stage 2: FraudDetector — output/ -> processing/ -> output/ (validated only)
         if validated_msg["data"].get("status") == "validated":
-            fraud_msg = fraud_detect(validated_msg)
+            output_path = output_dir / f"{txn_id}.json"
+            fraud_msg = _run_stage(output_path, processing_dir, output_dir, fraud_detect)
         else:
             fraud_msg = validated_msg
 
-        # Stage 3: report result
-        ack = report(fraud_msg, results_dir=results_dir)
+        # Stage 3: ReportingAgent — output/ -> processing/ -> results/
+        output_path = output_dir / f"{txn_id}.json"
+        _finalize_stage(output_path, processing_dir, results_dir)
+
         final_results.append(
             {
                 "transaction_id": txn_id,

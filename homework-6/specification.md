@@ -29,7 +29,7 @@ Build an automated, file-based multi-agent pipeline that validates, risk-scores,
 - **Logging**: structured log lines (to stdout/stderr); format: `[ISO8601] [AGENT_NAME] txn=<id> outcome=<outcome>`.
 - **PII**: `source_account` and `destination_account` are never written to logs; only masked references (last 4 chars) may appear.
 - **Error envelope**: rejected messages carry `{"status": "rejected", "reason": "MACHINE_CODE", "message": "human text"}`.
-- **Idempotency**: the integrator clears `shared/processing/` and `shared/output/` before each run so re-runs are safe.
+- **Idempotency**: the integrator clears `shared/input/`, `shared/processing/`, and `shared/output/` (transient mailboxes) before each run so re-runs are safe; `shared/results/` (durable outcomes) is left untouched.
 
 ---
 
