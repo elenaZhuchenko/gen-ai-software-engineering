@@ -6,11 +6,11 @@ Documentation lookups performed via context7 MCP server during development of th
 
 ## Query 1: Python decimal module for monetary arithmetic
 
-- **Search**: "Python decimal module monetary arithmetic ROUND_HALF_UP"
-- **context7 library ID**: `/python/decimal`
+- **Search**: "Use context7 to look up the Python decimal module documentation for monetary arithmetic" → `resolve-library-id` for "Python's decimal module documentation"
+- **context7 library ID**: first resolve attempt returned no match for the standard-library `decimal` module (only third-party `decimal` packages in Go/Elixir/JS, or unrelated hits) — re-resolved against "Python standard library documentation" instead, which returned `/python/cpython` (official CPython source, 36,847 code snippets, "High" source reputation, benchmark score 81.55) as the correct match, alongside a lower-signal alternative `/websites/python_3`. Used `/python/cpython`.
 - **Applied**: Used `decimal.Decimal` throughout `transaction_validator.py` and `fraud_detector.py` for all amount comparisons. Replaced every `float` comparison with `Decimal(str(raw["amount"]))` to avoid IEEE 754 floating-point drift. Applied `Decimal("10000")` as the exact fraud threshold, ensuring `9999.99 < 10000 < 10000.01` comparisons are always correct. The `str()` conversion before `Decimal()` prevents issues when values come in as Python `float` from JSON parsing.
 
-**Key insight**: Always convert via `str()` first — `Decimal(1500.00)` produces `Decimal('1499.9999...')` due to float representation, but `Decimal("1500.00")` is exact.
+**Key insight**: Always convert via `str()` first — `Decimal(1500.00)` produces `Decimal('1499.9999...')` due to float representation, but `Decimal("1500.00")` is exact. Also: `decimal` has no dedicated context7 library of its own — it's documented as part of the general `/python/cpython` library, so resolving by module name alone can fail and you need to fall back to resolving the parent language/stdlib.
 
 ---
 

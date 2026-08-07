@@ -5,8 +5,8 @@
       "args": ["-y", "@upstash/context7-mcp@latest"]
     },
     "pipeline-status": {
-      "command": "${workspaceFolder}/homework-6/.venv/bin/python",
-      "args": ["${workspaceFolder}/homework-6/mcp/server.py"]
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["${workspaceFolder}/mcp/server.py"]
     }
   }
 }
