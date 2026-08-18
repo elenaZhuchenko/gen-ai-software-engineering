@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Coverage gate — blocks git push when unit-test coverage is below 80%.
+# Install: run scripts/install-git-hooks.sh from the homework-6 directory.
+#
+# Scope: this repo is a monorepo of independent homeworks. Because a git
+# pre-push hook is repo-wide (only one hooks dir per .git), this script
+# must not block pushes that have nothing to do with homework-6 — e.g.
+# pushing a fix on homework-1 or homework-4 shouldn't require a
+# homework-6 .venv to exist. We therefore only run the coverage check
+# when the push actually touches homework-6/, and skip (allow) otherwise.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HW6_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="$(cd "$HW6_DIR/.." && pwd)"
+VENV_PYTHON="$HW6_DIR/.venv/bin/python"
+MIN_COVERAGE=80
+
+# git invokes pre-push with lines on stdin:
+#   <local ref> <local sha1> <remote ref> <remote sha1>
+# Collect every local sha1 being pushed so we can check which files changed.
+touches_homework6=false
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -z "$local_sha" ] && continue
+    # New branch / unknown remote sha: diff against the zero-sha's nearest
+    # ancestor is meaningless, so fall back to diffing against the remote
+    # tracking branch (if any) or an empty tree.
+    base_sha="$remote_sha"
+    if [ -z "$base_sha" ] || [ "$base_sha" = "0000000000000000000000000000000000000000" ]; then
+        base_sha="$(cd "$REPO_ROOT" && git merge-base "$local_sha" origin/main 2>/dev/null || true)"
+    fi
+    if [ -n "$base_sha" ]; then
+        changed="$(cd "$REPO_ROOT" && git diff --name-only "$base_sha" "$local_sha" -- homework-6/ 2>/dev/null || true)"
+    else
+        changed=""
+    fi
+    if [ -n "$changed" ] || [[ "$local_ref" == *homework-6* ]]; then
+        touches_homework6=true
+    fi
+done
+
+if [ "$touches_homework6" = false ]; then
+    echo "ℹ️  Coverage gate: push does not touch homework-6/ — skipping."
+    exit 0
+fi
+
+if [ ! -x "$VENV_PYTHON" ]; then
+    echo "⚠️  Coverage gate: homework-6/.venv not found (run scripts/install-git-hooks.sh"
+    echo "    setup steps in HOWTORUN.md first). Cannot verify coverage — blocking push."
+    exit 1
+fi
+
+echo "🔍 Coverage gate: running pytest in $HW6_DIR ..."
+
+cd "$HW6_DIR"
+
+if ! "$VENV_PYTHON" -m pytest \
+    --cov=agents --cov=integrator \
+    --cov-fail-under="$MIN_COVERAGE" \
+    --cov-report=term-missing \
+    -q 2>&1; then
+
+    echo ""
+    echo "🚫 PUSH BLOCKED — test coverage is below ${MIN_COVERAGE}%."
+    echo "   Fix failing tests or add coverage before pushing."
+    exit 1
+fi
+
+echo "✅ Coverage gate passed (≥${MIN_COVERAGE}%). Push allowed."
+exit 0

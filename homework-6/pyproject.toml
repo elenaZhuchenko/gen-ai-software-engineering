@@ -1,0 +1,12 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--cov=agents --cov=integrator --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+source = ["agents", "integrator"]
+omit = ["tests/*", ".venv/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80

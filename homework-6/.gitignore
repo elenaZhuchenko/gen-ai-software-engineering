@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+shared/input/*
+shared/processing/*
+shared/output/*
+shared/results/*
+!shared/input/.gitkeep
+!shared/processing/.gitkeep
+!shared/output/.gitkeep
+!shared/results/.gitkeep
+.env
